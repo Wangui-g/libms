@@ -73,31 +73,42 @@ class AuthService {
 
   print("Inserting profile with id: ${user.id}");
 
-  await _supabase.from('user_profiles').insert({
-    'id': user.id,
-    'email': user.email,
-    'full_name': fullName,
-    'user_type': userType,
-    'identification_number': identificationNumber,
-    'phone': phone,
-    'address': address,
-    'library_id': libraryId,
-  });
+  try{
+   final response = await _supabase.from('user_profiles').insert({
+     'id': user.id,
+     'email': user.email,
+     'full_name': fullName,
+     'user_type': userType,
+     'identification_number': identificationNumber,
+     'phone': phone,
+     'address': address,
+     'library_id': libraryId,
+   });
+   print("Profile created successfully: $response");
+  } on PostgrestException catch (e) {
+    print("❌ PostgrestException: ${e.message}");
+    throw Exception("Failed to create user profile: ${e.message}");  
+  } catch (e) {
+    print("❌ Error creating user profile: $e");
+    throw Exception("Failed to create user profile");
+  }
 }
 
-
-  Future<void> signOut() async {
-    await _supabase.auth.signOut();
-  }
-
   Future<Map<String, dynamic>?> getUserProfile(String userId) async {
-    final response = await _supabase
-        .from('user_profiles')
-        .select()
-        .eq('id', userId)
-        .single();
-    
-    return response;
+    try {
+      final response = await _supabase
+          .from('user_profiles')
+          .select()
+          .eq('id', userId)
+          .maybeSingle();
+
+      print("Fetched user profile: $response");    
+      return response;
+    } catch (e) {
+      print("❌ Error fetching user profile: $e");
+     return null;
+
+    }
   }
 
   Future<void> updateUserProfile(UserProfile profile) async {
@@ -105,6 +116,10 @@ class AuthService {
         .from('user_profiles')
         .update(profile.toJson())
         .eq('id', profile.id);
+  }
+
+  Future<void> signOut() async {
+    await _supabase.auth.signOut();
   }
 
   User? get currentUser => _supabase.auth.currentUser;
