@@ -38,7 +38,14 @@ class AuthService {
       libraryId: libraryId,
     );
 
+    final profile = await waitForUserProfile(user.id);
+    if (profile == null) {
+      throw Exception('Profile not found after creation.');
+    }
+
+    print("✅ Profile created successfully: $profile");
     return response;
+
   } on AuthException catch (e) {
     print("❌ AuthException: ${e.message}");
     throw Exception(e.message);
@@ -47,6 +54,22 @@ class AuthService {
     throw Exception("Registration failed: $e");
   }
 }
+
+  Future<Map<String, dynamic>?> waitForUserProfile(String userId) async {
+    const int maxAttempts = 10;
+    const Duration delay = Duration(seconds: 2);
+    
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+      final profile = await getUserProfile(userId);
+      if (profile != null) {
+        return profile;
+      }
+      await Future.delayed(delay);
+    }
+    
+    print("❌ Failed to fetch user profile after $maxAttempts attempts.");
+    return null;
+  }
 
   Future<AuthResponse> signIn({
     required String email,
